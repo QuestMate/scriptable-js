@@ -1,0 +1,14 @@
+{
+  "name": "scriptable-js",
+  "version": "0.0.1",
+  "description": "Scriptable.run javascript client",
+  "license": "MIT",
+  "scripts": {
+    "build": "yarn generate && yarn parcel build dist/index.ts",
+    "generate": "yarn swagger-typescript-api -p openapi.yaml -o ./dist -n ./index.ts --route-types --union-enums --api-class-name Scriptable"
+  },
+  "devDependencies": {
+    "parcel": "^2.7.0",
+    "swagger-typescript-api": "^10.0.1"
+  }
+}
