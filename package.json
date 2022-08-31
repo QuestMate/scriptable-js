@@ -3,12 +3,19 @@
   "version": "0.0.1",
   "description": "Scriptable.run javascript client",
   "license": "MIT",
+  "source": "./src/index.ts",
+  "main": "./dist/main.js",
+  "types": "dist/types.d.ts",
+  "module": "dist/module.js",
   "scripts": {
-    "build": "yarn generate && yarn parcel build dist/index.ts",
-    "generate": "yarn swagger-typescript-api -p openapi.yaml -o ./dist -n ./index.ts --route-types --union-enums --api-class-name Scriptable"
+    "build": "yarn generate && yarn parcel build",
+    "generate": "yarn swagger-typescript-api -p openapi.yaml -o ./src -n ./index.ts --route-types --union-enums --api-class-name Scriptable"
   },
   "devDependencies": {
+    "@parcel/packager-ts": "2.7.0",
+    "@parcel/transformer-typescript-types": "2.7.0",
     "parcel": "^2.7.0",
-    "swagger-typescript-api": "^10.0.1"
+    "swagger-typescript-api": "^10.0.1",
+    "typescript": ">=3.0.0"
   }
 }
