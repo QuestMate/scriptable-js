@@ -1,0 +1,106 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Scriptable API
+servers:
+  - url: https://api.scriptable.run/v1
+tags:
+  - name: core
+    description: Core Functionality
+paths:
+  /execute:
+    post:
+      summary: Execute Code Snippet
+      description: ""
+      operationId: execute
+      tags:
+        - core
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - source
+              properties:
+                source:
+                  type: string
+                  description: Source code to be executed.
+                  example: "console.log('Hello World!')"
+                globals:
+                  type: object
+                  description: Object with key value pairs that will be made available as properties on `globalThis` within the script context.
+                timeout:
+                  type: integer
+                  description: Timeout in milliseconds after which execution is terminated and an error is returned.
+                  example: 2000
+                layers:
+                  type: array
+                  description: Additional scripts to be evaluated before the main source code runs. Can be used to customize the environment.
+                  items:
+                    type: object
+                    required:
+                      - name
+                      - source
+                    properties:
+                      name:
+                        type: string
+                        description: Human readable name of the layer, can be used for debugging purposes. Will be included in stack traces.
+                      source:
+                        type: string
+                        description: Source code to be executed.
+                fetchCredentials:
+                  type: array
+                  description: Credentials to be used in outbound `fetch` requests made to other domains.
+                  items:
+                    type: object
+                    required:
+                      - domain
+                    properties:
+                      domain:
+                        type: string
+                        description: Domain for the credentials. Only if an outbound `fetch` request matches this domain are the specified credentials attached.
+                        example: example.com
+                      httpsOnly:
+                        type: boolean
+                        description: If true, attaches the credentials only to HTTPS requests made over a secured channel.
+                        default: true
+                      headerName:
+                        type: string
+                        description: Name of the header to attach to the `fetch` request.
+                      headerValue:
+                        type: string
+                        description: Value of the header to attach to the `fetch` request.
+      responses:
+        "200":
+          description: Successful Execution
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: ["ok", "failed"]
+                  value:
+                    type: string
+                    description: Value returned from the executed source code. Only present if `status` is `"ok"`.
+                  exception:
+                    type: object
+                    description: Exception thrown during execution. Only present if `status` is `"failed"`.
+                    properties:
+                      message:
+                        type: string
+                      stack:
+                        type: array
+                        items:
+                          type: string
+                  duration:
+                    type: integer
+                    description: Duration (real time) of the execution (including layers) measured in milliseconds.
+                  logs:
+                    type: array
+                    description: Log lines produced by the script or other layers via `console.log`.
+                    items:
+                      type: string
