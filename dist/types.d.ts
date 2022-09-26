@@ -1,45 +1,63 @@
-export declare namespace Execute {
+import { AxiosInstance, AxiosRequestConfig, AxiosResponse, ResponseType } from "axios";
+export interface ExecuteScriptPayload {
+    /**
+     * Source code to be executed.
+     * @example console.log('Hello World!')
+     */
+    source: string;
+    /** Object with key value pairs that will be made available as properties on `globalThis` within the script context. */
+    globals?: object;
+    /**
+     * Timeout in milliseconds after which execution is terminated and an error is returned.
+     * @example 2000
+     */
+    timeout?: number;
+    /** Additional scripts to be evaluated before the main source code runs. Can be used to customize the environment. */
+    layers?: {
+        name: string;
+        source: string;
+    }[];
+    /** Credentials to be used in outbound `fetch` requests made to other domains. */
+    fetchCredentials?: {
+        domain: string;
+        httpsOnly?: boolean;
+        headerName?: string;
+        headerValue?: string;
+    }[];
+}
+export interface ExecuteScriptData {
+    status?: "ok" | "failed";
+    /** Value returned from the executed source code. Only present if `status` is `"ok"`. */
+    value?: string;
+    /** Exception thrown during execution. Only present if `status` is `"failed"`. */
+    exception?: {
+        message?: string;
+        stack?: string[];
+    };
+    /** Duration (real time) of the execution (including layers) measured in milliseconds. */
+    duration?: number;
+    /** Log lines produced by the script or other layers via `console.log`. */
+    logs?: string[];
+}
+export declare namespace Core {
     /**
      * No description
      * @tags core
-     * @name Execute
+     * @name ExecuteScript
      * @summary Execute Code Snippet
      * @request POST:/execute
+     * @secure
      */
-    namespace Execute {
+    namespace ExecuteScript {
         type RequestParams = {};
         type RequestQuery = {};
-        type RequestBody = {
-            source: string;
-            globals?: object;
-            timeout?: number;
-            layers?: {
-                name: string;
-                source: string;
-            }[];
-            fetchCredentials?: {
-                domain: string;
-                httpsOnly?: boolean;
-                headerName?: string;
-                headerValue?: string;
-            }[];
-        };
+        type RequestBody = ExecuteScriptPayload;
         type RequestHeaders = {};
-        type ResponseBody = {
-            status?: "ok" | "failed";
-            value?: string;
-            exception?: {
-                message?: string;
-                stack?: string[];
-            };
-            duration?: number;
-            logs?: string[];
-        };
+        type ResponseBody = ExecuteScriptData;
     }
 }
 export type QueryParamsType = Record<string | number, any>;
-export type ResponseFormat = keyof Omit<Body, "body" | "bodyUsed">;
-export interface FullRequestParams extends Omit<RequestInit, "body"> {
+export interface FullRequestParams extends Omit<AxiosRequestConfig, "data" | "params" | "url" | "responseType"> {
     /** set parameter to `true` for call `securityWorker` for this request */
     secure?: boolean;
     /** request path */
@@ -49,44 +67,29 @@ export interface FullRequestParams extends Omit<RequestInit, "body"> {
     /** query params */
     query?: QueryParamsType;
     /** format of response (i.e. response.json() -> format: "json") */
-    format?: ResponseFormat;
+    format?: ResponseType;
     /** request body */
     body?: unknown;
-    /** base url */
-    baseUrl?: string;
-    /** request cancellation token */
-    cancelToken?: CancelToken;
 }
 export type RequestParams = Omit<FullRequestParams, "body" | "method" | "query" | "path">;
-export interface ApiConfig<SecurityDataType = unknown> {
-    baseUrl?: string;
-    baseApiParams?: Omit<RequestParams, "baseUrl" | "cancelToken" | "signal">;
-    securityWorker?: (securityData: SecurityDataType | null) => Promise<RequestParams | void> | RequestParams | void;
-    customFetch?: typeof fetch;
+export interface ApiConfig<SecurityDataType = unknown> extends Omit<AxiosRequestConfig, "data" | "cancelToken"> {
+    securityWorker?: (securityData: SecurityDataType | null) => Promise<AxiosRequestConfig | void> | AxiosRequestConfig | void;
+    secure?: boolean;
+    format?: ResponseType;
 }
-export interface HttpResponse<D extends unknown, E extends unknown = unknown> extends Response {
-    data: D;
-    error: E;
-}
-type CancelToken = Symbol | string | number;
 export enum ContentType {
     Json = "application/json",
     FormData = "multipart/form-data",
     UrlEncoded = "application/x-www-form-urlencoded"
 }
 export class HttpClient<SecurityDataType = unknown> {
-    baseUrl: string;
-    constructor(apiConfig?: ApiConfig<SecurityDataType>);
+    instance: AxiosInstance;
+    constructor({ securityWorker, secure, format, ...axiosConfig }?: ApiConfig<SecurityDataType>);
     setSecurityData: (data: SecurityDataType | null) => void;
-    protected encodeQueryParam(key: string, value: any): string;
-    protected addQueryParam(query: QueryParamsType, key: string): string;
-    protected addArrayQueryParam(query: QueryParamsType, key: string): any;
-    protected toQueryString(rawQuery?: QueryParamsType): string;
-    protected addQueryParams(rawQuery?: QueryParamsType): string;
-    protected mergeRequestParams(params1: RequestParams, params2?: RequestParams): RequestParams;
-    protected createAbortSignal: (cancelToken: CancelToken) => AbortSignal | undefined;
-    abortRequest: (cancelToken: CancelToken) => void;
-    request: <T = any, E = any>({ body, secure, path, type, query, format, baseUrl, cancelToken, ...params }: FullRequestParams) => Promise<HttpResponse<T, E>>;
+    protected mergeRequestParams(params1: AxiosRequestConfig, params2?: AxiosRequestConfig): AxiosRequestConfig;
+    protected stringifyFormItem(formItem: unknown): string;
+    protected createFormData(input: Record<string, unknown>): FormData;
+    request: <T = any, _E = any>({ secure, path, type, query, format, body, ...params }: FullRequestParams) => Promise<AxiosResponse<T, any>>;
 }
 /**
  * @title Scriptable API
@@ -94,40 +97,16 @@ export class HttpClient<SecurityDataType = unknown> {
  * @baseUrl https://api.scriptable.run/v1
  */
 export class Scriptable<SecurityDataType extends unknown> extends HttpClient<SecurityDataType> {
-    execute: {
-        /**
-         * No description
-         *
-         * @tags core
-         * @name Execute
-         * @summary Execute Code Snippet
-         * @request POST:/execute
-         */
-        execute: (data: {
-            source: string;
-            globals?: object;
-            timeout?: number;
-            layers?: {
-                name: string;
-                source: string;
-            }[];
-            fetchCredentials?: {
-                domain: string;
-                httpsOnly?: boolean;
-                headerName?: string;
-                headerValue?: string;
-            }[];
-        }, params?: RequestParams) => Promise<HttpResponse<{
-            status?: "ok" | "failed";
-            value?: string;
-            exception?: {
-                message?: string;
-                stack?: string[];
-            };
-            duration?: number;
-            logs?: string[];
-        }, any>>;
-    };
+    /**
+     * No description
+     *
+     * @tags core
+     * @name ExecuteScript
+     * @summary Execute Code Snippet
+     * @request POST:/execute
+     * @secure
+     */
+    executeScript: (data: ExecuteScriptPayload, params?: RequestParams) => Promise<AxiosResponse<ExecuteScriptData, any>>;
 }
 
 //# sourceMappingURL=types.d.ts.map

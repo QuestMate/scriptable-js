@@ -7,14 +7,22 @@ servers:
 tags:
   - name: core
     description: Core Functionality
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: ScriptableAccessKey
 paths:
   /execute:
     post:
       summary: Execute Code Snippet
       description: ""
-      operationId: execute
+      operationId: executeScript
       tags:
         - core
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
